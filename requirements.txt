@@ -1,0 +1,7 @@
+flask==3.0.0
+apscheduler==3.10.4
+psutil==5.9.6
+wmi==1.5.1; sys_platform == 'win32'
+pywin32; sys_platform == 'win32'
+requests==2.31.0
+python-dotenv==1.0.0

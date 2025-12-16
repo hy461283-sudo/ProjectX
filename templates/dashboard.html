@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Self-Healing IT Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>System Health Monitor</h1>
+            <div id="connection-status" class="status-indicator">Connecting...</div>
+        </header>
+
+        <!-- Metric Cards -->
+        <div class="metrics-grid">
+            <div class="card metric-card" id="cpu-card">
+                <h3>CPU Usage</h3>
+                <div class="metric-value" id="cpu-val">--%</div>
+                <div class="metric-bar-bg">
+                    <div class="metric-bar-fill" id="cpu-bar"></div>
+                </div>
+                <div class="top-list" id="cpu-top-list"></div>
+            </div>
+
+            <div class="card metric-card" id="mem-card">
+                <h3>Memory Usage</h3>
+                <div class="metric-value" id="mem-val">--%</div>
+                <div class="metric-bar-bg">
+                    <div class="metric-bar-fill" id="mem-bar"></div>
+                </div>
+            </div>
+
+            <div class="card metric-card" id="disk-card">
+                <h3>Disk Usage</h3>
+                <div class="metric-value" id="disk-val">--%</div>
+                <div class="metric-bar-bg">
+                    <div class="metric-bar-fill" id="disk-bar"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-row">
+            <!-- Events Log -->
+            <div class="card panel">
+                <h2>Event Log (Last 24h)</h2>
+                <div class="table-container">
+                    <table id="events-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Type</th>
+                                <th>Severity</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Settings -->
+            <div class="card settings-panel">
+                <h3>Settings</h3>
+
+                <label class="toggle-switch">
+                    Auto-Remediate
+                    <input type="checkbox" id="auto-remediate-toggle">
+                    <span class="slider"></span>
+                </label>
+
+                <div class="setting-group"
+                    style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+                    <label>CPU Threshold (%)</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="number" id="cpu-threshold"
+                            style="width: 60px; padding: 6px; border: 1px solid #e2e8f0; border-radius: 6px;">
+                        <button
+                            onclick="saveSetting('cpu_threshold', document.getElementById('cpu-threshold').value)">Save</button>
+                    </div>
+                </div>
+
+                <div class="setting-group"
+                    style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+                    <label>Memory Threshold (%)</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="number" id="memory-threshold"
+                            style="width: 60px; padding: 6px; border: 1px solid #e2e8f0; border-radius: 6px;">
+                        <button
+                            onclick="saveSetting('memory_threshold', document.getElementById('memory-threshold').value)">Save</button>
+                    </div>
+                </div>
+
+                <div class="setting-group" style="display: flex; justify-content: space-between; align-items: center;">
+                    <label>Disk Threshold (%)</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="number" id="disk-threshold"
+                            style="width: 60px; padding: 6px; border: 1px solid #e2e8f0; border-radius: 6px;">
+                        <button
+                            onclick="saveSetting('disk_threshold', document.getElementById('disk-threshold').value)">Save</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions History -->
+        <div class="card panel full-width">
+            <h2>Remediation Actions (Last 7 Days)</h2>
+            <div class="table-container">
+                <table id="actions-table">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Output</th>
+                            <th>Duration (ms)</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+
+</html>
