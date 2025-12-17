@@ -44,12 +44,82 @@ executor = get_configured_executor()
 db_manager = DatabaseManager()
 analyzer = Analyzer(db_manager)
 
+@app.route('/api/settings/whitelist', methods=['GET', 'POST'])
+def handle_whitelist():
+    if request.method == 'POST':
+        data = request.json
+        name = data.get('name')
+        if name:
+            db_manager.add_to_whitelist(name)
+            return jsonify({"status": "added", "name": name})
+        return jsonify({"error": "No name provided"}), 400
+    else:
+        return jsonify(db_manager.get_whitelist())
+
+@app.route('/api/settings/whitelist/<name>', methods=['DELETE'])
+def delete_whitelist(name):
+    db_manager.remove_from_whitelist(name)
+    return jsonify({"status": "removed", "name": name})
+
+@app.route('/api/recommendations', methods=['GET'])
+def get_recommendations():
+    # Simple insights logic
+    events = db_manager.get_recent_events(limit=50)
+    insights = []
+    
+    # Count event types
+    counts = {}
+    for e in events:
+        counts[e['type']] = counts.get(e['type'], 0) + 1
+        
+    if counts.get('cpu_high', 0) > 5:
+        insights.append({
+            "type": "performance", 
+            "message": "High CPU detected frequency. Recommend reviewing startup apps or background services.",
+            "severity": "warning"
+        })
+    
+    if counts.get('memory_high', 0) > 5:
+        insights.append({
+            "type": "resource",
+            "message": "Memory pressure is consistent. Consider closing browser tabs or upgrading RAM.",
+            "severity": "info"
+        })
+
+    return jsonify(insights)
+
+@app.route('/api/history')
+def get_history():
+    # Return last 60 points for charts
+    return jsonify(db_manager.get_metrics_history(limit=60))
+
+@app.route('/api/processes')
+def get_processes():
+    # Return list of running process names
+    try:
+        if platform.system() == 'Windows':
+            # Use PowerShell for cleaner names
+            # cmd = "Get-Process | Select-Object -Unique ProcessName | Sort-Object ProcessName | ConvertTo-Json"
+            # actually psutil is faster and portable
+            import psutil
+            procs = {p.info['name'] for p in psutil.process_iter(['name'])}
+            return jsonify(sorted(list(procs)))
+        else:
+            import psutil
+            procs = {p.info['name'] for p in psutil.process_iter(['name'])}
+            return jsonify(sorted(list(procs)))
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 # Scheduler Job
 def run_health_check_job():
     try:
         # 1. Monitor
         metrics = monitor.get_system_metrics()
         
+        # 0. Log History
+        db_manager.log_metrics(metrics['cpu_percent'], metrics['memory_percent'], metrics['disk_percent'])
+
         # 2. Analyze
         events = analyzer.analyze(metrics)
         
@@ -73,7 +143,7 @@ def run_health_check_job():
         # Logic: If global config forces OFF, it's OFF. 
         # But if global config says we are in 'dev', we force Mac Executor even if on Windows?
         # Actually `executor` is initialized at startup. We might need to swap it dynamically or just rely on platform check.
-        # But task says: "If ENVIRONMENT == 'dev'... Always use Mac executor". 
+        # But task says: "If ENVIRONMENT...dev... Always use Mac executor". 
         
         # Note: `executor` variable is global. We initialized it at startup.
         # If we need to support dynamic switching based on config.py (which is static usually), 
@@ -99,12 +169,15 @@ def run_health_check_job():
         auto_remediate = should_remediate
         
         ACTION_MAP = {
-            'cpu_high': 'action_throttle_high_cpu_process',
-            'memory_high': 'action_log_memory_hog',
+            'cpu_high': 'action_kill_high_cpu_process', # Now supports throttling!
+            'memory_high': 'action_clear_memory_hog',
             'disk_low': 'action_free_disk_space',
-            'service_crashed': 'action_log_service_failure',
-            'updates_pending': 'action_log_updates_pending'
+            'service_crashed': 'action_restart_service',
+            'updates_pending': 'action_handle_updates_pending'
         }
+
+        # Fetch whitelist once per cycle
+        current_whitelist = db_manager.get_whitelist()
 
         for event in events:
             # Log Event
@@ -121,7 +194,8 @@ def run_health_check_job():
                         'description': event.description,
                         'metric_value': event.metric_value,
                         'threshold': event.threshold,
-                        'severity': event.severity
+                        'severity': event.severity,
+                        'whitelist': current_whitelist # Pass dynamic whitelist
                     }
                     
                     success, output, extra = executor.execute_action(action_type, issue_dict)
@@ -227,14 +301,17 @@ def update_setting(key):
 
 @app.route('/api/actions/<action_id>/rollback', methods=['POST'])
 def rollback_action(action_id):
-    success = executor.rollback_action(int(action_id))
+    # Fetch original action details to know what to rollback
+    actions = db_manager.get_recent_actions(limit=100) # Naive bad implementation but sufficient for MVP memory-db
+    action = next((a for a in actions if str(a['id']) == str(action_id)), None)
+    
+    if not action:
+        return jsonify({'status': 'failed', 'message': 'Action ID not found'}), 404
+        
+    success = executor.perform_rollback(action['type'], action)
     return jsonify({'status': 'success' if success else 'failed'})
 
-@app.route('/api/recommendations')
-def get_recommendations():
-    """Get all recommendations (pending and historical)."""
-    recommendations = db_manager.get_all_recommendations(limit=50)
-    return jsonify(recommendations)
+
 
 @app.route('/api/recommendations/pending')
 def get_pending_recommendations():

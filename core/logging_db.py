@@ -30,8 +30,63 @@ class DatabaseManager:
         except Exception:
             pass
             
+    # ... (previous init_db code)
+        try:
+           # Basic migration for whitelist
+           conn.execute("CREATE TABLE IF NOT EXISTS process_whitelist (name TEXT PRIMARY KEY)")
+        except: pass
+            
+    # ... (previous init_db code)
+        try:
+           conn.execute("CREATE TABLE IF NOT EXISTS metrics_history (id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp TEXT NOT NULL, cpu_percent REAL, memory_percent REAL, disk_percent REAL)")
+        except: pass
+        
+        try:
+           conn.execute("CREATE TABLE IF NOT EXISTS recommendations (id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp TEXT NOT NULL, event_id INTEGER, category TEXT NOT NULL, recommendation_text TEXT NOT NULL, action_type TEXT, priority TEXT DEFAULT 'medium', status TEXT DEFAULT 'pending', applied_at TEXT, FOREIGN KEY(event_id) REFERENCES events(id))")
+        except: pass
+        
         with open(SCHEMA_PATH, 'r') as f:
             conn.executescript(f.read())
+        conn.commit()
+        conn.close()
+
+    def log_metrics(self, cpu, mem, disk):
+        conn = self.get_connection()
+        conn.execute("INSERT INTO metrics_history (timestamp, cpu_percent, memory_percent, disk_percent) VALUES (?, ?, ?, ?)",
+                     (datetime.now().isoformat(), cpu, mem, disk))
+        # Cleanup old metrics (keep last 24h roughly 2880 entries at 30s interval or just limit by count)
+        # For MVP, keep last 1000
+        conn.execute("DELETE FROM metrics_history WHERE id NOT IN (SELECT id FROM metrics_history ORDER BY id DESC LIMIT 1000)")
+        conn.commit()
+        conn.close()
+
+    def get_metrics_history(self, limit=60): # Last ~30-60 mins depending on polling
+        conn = self.get_connection()
+        cur = conn.execute("SELECT timestamp, cpu_percent, memory_percent, disk_percent FROM metrics_history ORDER BY id ASC LIMIT ?", (limit,))
+        rows = cur.fetchall()
+        conn.close()
+        return [dict(row) for row in rows]
+
+    def get_whitelist(self) -> List[str]:
+        conn = self.get_connection()
+        cur = conn.execute("SELECT name FROM process_whitelist")
+        rows = cur.fetchall()
+        conn.close()
+        return [row['name'] for row in rows]
+
+    def add_to_whitelist(self, name: str):
+        conn = self.get_connection()
+        try:
+            conn.execute("INSERT INTO process_whitelist (name) VALUES (?)", (name,))
+            conn.commit()
+        except sqlite3.IntegrityError:
+            pass # Already exists
+        finally:
+            conn.close()
+
+    def remove_from_whitelist(self, name: str):
+        conn = self.get_connection()
+        conn.execute("DELETE FROM process_whitelist WHERE name = ?", (name,))
         conn.commit()
         conn.close()
 

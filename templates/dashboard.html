@@ -4,129 +4,256 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Self-Healing IT Dashboard</title>
+    <title>ProjectX - Self Healing IT</title>
     <link rel="stylesheet" href="/static/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
-    <div class="container">
-        <header>
-            <h1>System Health Monitor</h1>
-            <div id="connection-status" class="status-indicator">Connecting...</div>
-        </header>
 
-        <!-- Metric Cards -->
-        <div class="metrics-grid">
-            <div class="card metric-card" id="cpu-card">
-                <h3>CPU Usage</h3>
-                <div class="metric-value" id="cpu-val">--%</div>
-                <div class="metric-bar-bg">
-                    <div class="metric-bar-fill" id="cpu-bar"></div>
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar">
+        <div class="brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+            </svg>
+            ProjectX
+        </div>
+        <ul class="nav-menu">
+            <li class="nav-item active" onclick="switchTab('dashboard')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="14" width="7" height="7"></rect>
+                    <rect x="3" y="14" width="7" height="7"></rect>
+                </svg>
+                <span>Dashboard</span>
+            </li>
+            <li class="nav-item" onclick="switchTab('events')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                <span>Events Log</span>
+            </li>
+            <li class="nav-item" onclick="switchTab('actions')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                </svg>
+                <span>Actions History</span>
+            </li>
+            <li class="nav-item" onclick="switchTab('settings')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path
+                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                    </path>
+                </svg>
+                <span>Settings</span>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <div id="connection-status" class="header-status">
+            <span class="status-dot"></span> Checking
+        </div>
+
+        <!-- TAB: DASHBOARD (Metrics) -->
+        <div id="tab-dashboard" class="tab-content active">
+            <header class="tab-header">
+                <h2>System Overview</h2>
+                <p class="subtitle">Real-time performance metrics and process monitoring.</p>
+            </header>
+
+            <div class="metrics-grid">
+                <!-- CPU Card -->
+                <div class="metric-card">
+                    <div class="card-header">
+                        <h3>CPU Usage</h3>
+                        <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+                            <rect x="9" y="9" width="6" height="6"></rect>
+                            <line x1="9" y1="1" x2="9" y2="4"></line>
+                            <line x1="15" y1="1" x2="15" y2="4"></line>
+                            <line x1="9" y1="20" x2="9" y2="23"></line>
+                            <line x1="15" y1="20" x2="15" y2="23"></line>
+                            <line x1="20" y1="9" x2="23" y2="9"></line>
+                            <line x1="20" y1="14" x2="23" y2="14"></line>
+                            <line x1="1" y1="9" x2="4" y2="9"></line>
+                            <line x1="1" y1="14" x2="4" y2="14"></line>
+                        </svg>
+                    </div>
+                    <div class="metric-body">
+                        <div class="metric-value-container">
+                            <div class="metric-value" id="cpu-val">--%</div>
+                        </div>
+                        <div class="metric-bar-bg">
+                            <div class="metric-bar-fill" id="cpu-bar"></div>
+                        </div>
+                        <div class="top-list" id="cpu-top-list">
+                            <div class="loader"></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="top-list" id="cpu-top-list"></div>
+
+                <!-- Memory Card -->
+                <div class="metric-card">
+                    <div class="card-header">
+                        <h3>Memory Usage</h3>
+                        <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M2 12h20"></path>
+                            <path d="M2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6"></path>
+                            <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                        </svg>
+                    </div>
+                    <div class="metric-body">
+                        <div class="metric-value" id="mem-val">--%</div>
+                        <div class="metric-bar-bg">
+                            <div class="metric-bar-fill" id="mem-bar"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Disk Card -->
+                <div class="metric-card">
+                    <div class="card-header">
+                        <h3>Disk Usage</h3>
+                        <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                        </svg>
+                    </div>
+                    <div class="metric-body">
+                        <div class="metric-value" id="disk-val">--%</div>
+                        <div class="metric-bar-bg">
+                            <div class="metric-bar-fill" id="disk-bar"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div class="card metric-card" id="mem-card">
-                <h3>Memory Usage</h3>
-                <div class="metric-value" id="mem-val">--%</div>
-                <div class="metric-bar-bg">
-                    <div class="metric-bar-fill" id="mem-bar"></div>
-                </div>
-            </div>
-
-            <div class="card metric-card" id="disk-card">
-                <h3>Disk Usage</h3>
-                <div class="metric-value" id="disk-val">--%</div>
-                <div class="metric-bar-bg">
-                    <div class="metric-bar-fill" id="disk-bar"></div>
+            <!-- Historical Chart -->
+            <div
+                style="margin-top:24px; background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:12px; padding:24px;">
+                <h3 style="margin-bottom:16px; font-size:13px; color:var(--text-secondary); text-transform:uppercase;">
+                    Performance History (Live - 1 Minute)</h3>
+                <div style="height:300px; width:100%;">
+                    <canvas id="historyChart"></canvas>
                 </div>
             </div>
         </div>
 
-        <div class="dashboard-row">
-            <!-- Events Log -->
-            <div class="card panel">
-                <h2>Event Log (Last 24h)</h2>
-                <div class="table-container">
-                    <table id="events-table">
-                        <thead>
-                            <tr>
-                                <th>Timestamp</th>
-                                <th>Type</th>
-                                <th>Severity</th>
-                                <th>Description</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Settings -->
-            <div class="card settings-panel">
-                <h3>Settings</h3>
-
-                <label class="toggle-switch">
-                    Auto-Remediate
-                    <input type="checkbox" id="auto-remediate-toggle">
-                    <span class="slider"></span>
-                </label>
-
-                <div class="setting-group"
-                    style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
-                    <label>CPU Threshold (%)</label>
-                    <div style="display: flex; gap: 8px;">
-                        <input type="number" id="cpu-threshold"
-                            style="width: 60px; padding: 6px; border: 1px solid #e2e8f0; border-radius: 6px;">
-                        <button
-                            onclick="saveSetting('cpu_threshold', document.getElementById('cpu-threshold').value)">Save</button>
-                    </div>
-                </div>
-
-                <div class="setting-group"
-                    style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
-                    <label>Memory Threshold (%)</label>
-                    <div style="display: flex; gap: 8px;">
-                        <input type="number" id="memory-threshold"
-                            style="width: 60px; padding: 6px; border: 1px solid #e2e8f0; border-radius: 6px;">
-                        <button
-                            onclick="saveSetting('memory_threshold', document.getElementById('memory-threshold').value)">Save</button>
-                    </div>
-                </div>
-
-                <div class="setting-group" style="display: flex; justify-content: space-between; align-items: center;">
-                    <label>Disk Threshold (%)</label>
-                    <div style="display: flex; gap: 8px;">
-                        <input type="number" id="disk-threshold"
-                            style="width: 60px; padding: 6px; border: 1px solid #e2e8f0; border-radius: 6px;">
-                        <button
-                            onclick="saveSetting('disk_threshold', document.getElementById('disk-threshold').value)">Save</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Actions History -->
-        <div class="card panel full-width">
-            <h2>Remediation Actions (Last 7 Days)</h2>
-            <div class="table-container">
-                <table id="actions-table">
+        <!-- TAB: EVENTS -->
+        <div id="tab-events" class="tab-content">
+            <h2>Event Log (Last 24h)</h2>
+            <div class="table-panel">
+                <table id="events-table">
                     <thead>
                         <tr>
                             <th>Timestamp</th>
                             <th>Type</th>
-                            <th>Status</th>
-                            <th>Output</th>
-                            <th>Duration (ms)</th>
-                            <th>Actions</th>
+                            <th>Severity</th>
+                            <th>Description</th>
                         </tr>
                     </thead>
-                    <tbody></tbody>
+                    <tbody>
+                        <!-- Rows injected via JS -->
+                    </tbody>
                 </table>
             </div>
         </div>
-    </div>
+
+        <!-- TAB: ACTIONS -->
+        <div id="tab-actions" class="tab-content">
+            <h2>Remediation History (Last 7 Days)</h2>
+            <div class="table-panel">
+                <table id="actions-table">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Action Type</th>
+                            <th>Status</th>
+                            <th>Target / Details</th>
+                            <th>Output</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Rows injected via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TAB: SETTINGS -->
+        <div id="tab-settings" class="tab-content">
+            <h2>System Configuration</h2>
+            <div class="settings-container">
+
+                <!-- Toggle -->
+                <div class="form-group">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="auto-remediate-toggle" style="display:none;">
+                        <div class="switch-track">
+                            <div class="switch-thumb"></div>
+                        </div>
+                        <span>Enable Auto-Remediation</span>
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">CPU Kill Threshold (%)</label>
+                    <input type="number" id="cpu-threshold" class="form-input">
+                    <button class="btn-save"
+                        onclick="saveSetting('cpu_threshold', document.getElementById('cpu-threshold').value)">Save</button>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Memory Clearance Threshold (%)</label>
+                    <input type="number" id="memory-threshold" class="form-input">
+                    <button class="btn-save"
+                        onclick="saveSetting('memory_threshold', document.getElementById('memory-threshold').value)">Save</button>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Disk Cleanup Threshold (%)</label>
+                    <input type="number" id="disk-threshold" class="form-input">
+                    <button class="btn-save"
+                        onclick="saveSetting('disk_threshold', document.getElementById('disk-threshold').value)">Save</button>
+                </div>
+
+                <div class="form-group" style="margin-top:40px; border-top:1px solid var(--border); padding-top:20px;">
+                    <h3 style="color:var(--text-primary); margin-bottom:12px; font-size:16px;">Protected Applications
+                        (Whitelist)</h3>
+                    <p style="color:var(--text-muted); font-size:13px; margin-bottom:16px;">Apps listed here will be
+                        <strong>Throttled</strong> instead of Killed during high CPU usage.
+                    </p>
+
+                    <div style="margin-bottom:16px; display:flex; gap:10px;">
+                        <input type="text" id="new-whitelist-name" class="form-input"
+                            placeholder="Search running processes..." list="running-processes">
+                        <datalist id="running-processes">
+                            <!-- Populated via JS -->
+                        </datalist>
+                        <button class="btn-save" style="margin-top:0;" onclick="addWhitelist()">Add</button>
+                    </div>
+
+                    <div id="whitelist-tags" style="display:flex; flex-wrap:wrap;">
+                        <!-- Tags injected via JS -->
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </main>
 
     <script src="/static/script.js"></script>
 </body>
